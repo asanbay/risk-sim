@@ -1,0 +1,2 @@
+lift_id,task_id,load_name,mass_kg,area_m2,cd,cd_min,cd_max,sling_legs,sling_angle_deg,carrying_legs,sling_wll_kg,hook_height_m,radius_m,tagline_people,wind_limit_ms,rope_length_m,tagline_capacity_n,tagline_stiffness_n_per_m,crane_x_m,crane_y_m,slew_angle_deg,load_length_m,load_width_m,load_height_m
+L3-01,T3-LIFT,ДЕМО: панель опалубки,1200,6,1.2,1.1,1.6,4,60,2,3000,14,14,2,8,4,1500,120,-8,10,0,4,0.4,1.5

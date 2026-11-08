@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Симуляция рисков строительных работ — интерактивный просмотр</title>
+<style>
+:root{
+  --bg:#0d1117; --panel:#161b22; --panel2:#1c2230; --line:#2a3140;
+  --txt:#e6edf3; --mut:#8b98a9; --acc:#4da3ff;
+  --crit:#ff4d4f; --high:#ff9f1c; --med:#ffd166; --low:#4ecdc4; --ok:#3fb950;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--txt);
+  font:13px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
+#app{display:grid;grid-template-columns:340px 1fr 330px;grid-template-rows:auto 1fr auto;
+  height:100vh;gap:0}
+header{grid-column:1/4;display:flex;align-items:center;gap:14px;padding:8px 14px;
+  background:var(--panel);border-bottom:1px solid var(--line)}
+header h1{font-size:14px;margin:0;font-weight:600;letter-spacing:.2px}
+header .sub{color:var(--mut);font-size:11px}
+.badge{padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;border:1px solid var(--line)}
+.b-crit{background:rgba(255,77,79,.15);color:var(--crit);border-color:rgba(255,77,79,.4)}
+.b-high{background:rgba(255,159,28,.15);color:var(--high);border-color:rgba(255,159,28,.4)}
+.b-med{background:rgba(255,209,102,.13);color:var(--med);border-color:rgba(255,209,102,.35)}
+.b-ok{background:rgba(63,185,80,.14);color:var(--ok);border-color:rgba(63,185,80,.4)}
+aside{background:var(--panel);overflow-y:auto;border-right:1px solid var(--line)}
+aside.right{border-right:none;border-left:1px solid var(--line)}
+.sec{border-bottom:1px solid var(--line);padding:10px 12px}
+.sec h2{font-size:11px;text-transform:uppercase;letter-spacing:.9px;color:var(--mut);
+  margin:0 0 8px;font-weight:600}
+#stage{position:relative;background:radial-gradient(ellipse at 50% 35%,#182031 0%,#0b0f16 70%);overflow:hidden}
+canvas#view{display:block;width:100%;height:100%;cursor:grab}
+canvas#view:active{cursor:grabbing}
+footer{grid-column:1/4;background:var(--panel);border-top:1px solid var(--line);padding:8px 14px}
+.tl{display:flex;align-items:center;gap:12px}
+button{background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:6px;
+  padding:5px 11px;cursor:pointer;font-size:12px;font-family:inherit}
+button:hover{border-color:var(--acc);color:#fff}
+button.on{background:rgba(77,163,255,.2);border-color:var(--acc);color:#fff}
+input[type=range]{flex:1;accent-color:var(--acc);height:22px}
+#clock{font-variant-numeric:tabular-nums;font-weight:600;min-width:132px}
+.row{display:flex;justify-content:space-between;gap:8px;padding:2px 0;font-size:12px}
+.row .k{color:var(--mut)}
+.row .v{font-variant-numeric:tabular-nums;text-align:right}
+.finding{padding:7px 8px;border-left:3px solid var(--line);background:var(--panel2);
+  border-radius:0 5px 5px 0;margin-bottom:6px;cursor:pointer;transition:.12s}
+.finding:hover{background:#232b3a;transform:translateX(2px)}
+.finding.critical{border-left-color:var(--crit)}
+.finding.high{border-left-color:var(--high)}
+.finding.medium{border-left-color:var(--med)}
+.finding .ft{font-size:11px;color:var(--mut);margin-bottom:2px;display:flex;gap:6px;align-items:center}
+.finding .fm{font-size:12px}
+.finding.active{outline:1px solid var(--acc);background:#1d2a3d}
+.chips{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px}
+.chip{font-size:11px;padding:2px 7px;border-radius:9px;background:var(--panel2);
+  border:1px solid var(--line);cursor:pointer;color:var(--mut)}
+.chip.on{color:#fff;border-color:var(--acc);background:rgba(77,163,255,.16)}
+.bar{height:6px;border-radius:3px;background:#222b3a;overflow:hidden;margin:3px 0 7px}
+.bar>i{display:block;height:100%;background:var(--acc)}
+.bar>i.warn{background:var(--high)} .bar>i.bad{background:var(--crit)} .bar>i.good{background:var(--ok)}
+table{width:100%;border-collapse:collapse;font-size:11.5px}
+th{text-align:left;color:var(--mut);font-weight:500;padding:3px 4px;border-bottom:1px solid var(--line)}
+td{padding:3px 4px;border-bottom:1px solid #1e2531;font-variant-numeric:tabular-nums}
+.legend{display:flex;flex-wrap:wrap;gap:8px;font-size:11px;color:var(--mut)}
+.legend span{display:inline-flex;align-items:center;gap:4px}
+.legend i{width:10px;height:10px;border-radius:2px;display:inline-block}
+#hud{position:absolute;left:12px;top:10px;pointer-events:none;text-shadow:0 1px 3px #000}
+#hud .big{font-size:15px;font-weight:600}
+#hud .sm{font-size:11px;color:var(--mut)}
+#tip{position:absolute;pointer-events:none;background:#0b0f16ee;border:1px solid var(--line);
+  border-radius:6px;padding:6px 9px;font-size:11.5px;max-width:280px;display:none;z-index:9}
+.note{font-size:11px;color:var(--mut);background:#141a24;border:1px solid var(--line);
+  border-left:3px solid var(--high);padding:6px 8px;border-radius:0 4px 4px 0}
+canvas.spark{width:100%;height:52px;display:block;background:#111722;border-radius:5px}
+.kbd{font-size:10px;color:var(--mut);border:1px solid var(--line);border-radius:3px;padding:0 4px}
+a{color:var(--acc)}
+#disc{grid-column:1/4;background:#1a1410;border-top:1px solid #3a2d1c;color:#c9b48f;
+  font-size:11px;padding:5px 14px}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div>
+      <h1>Симуляция рисков строительных работ</h1>
+      <div class="sub" id="hsub">загрузка…</div>
+    </div>
+    <div style="flex:1"></div>
+    <span class="badge b-crit" id="bcrit">critical: —</span>
+    <span class="badge b-high" id="bhigh">high: —</span>
+    <span class="badge b-med" id="bmed">medium: —</span>
+    <span class="badge b-ok" id="bframes">кадров: —</span>
+  </header>
+
+  <aside class="left">
+    <div class="sec">
+      <h2>Нарушения в текущий момент</h2>
+      <div class="chips" id="sevchips"></div>
+      <div id="nowfind"></div>
+    </div>
+    <div class="sec">
+      <h2>Все нарушения недели</h2>
+      <div class="chips" id="rulechips"></div>
+      <div id="allfind" style="max-height:340px;overflow-y:auto"></div>
+    </div>
+    <div class="sec">
+      <h2>События воздействия (агенты)</h2>
+      <div id="agentev" style="max-height:210px;overflow-y:auto"></div>
+    </div>
+  </aside>
+
+  <div id="stage">
+    <canvas id="view"></canvas>
+    <div id="hud">
+      <div class="big" id="hudT">—</div>
+      <div class="sm" id="hudS">—</div>
+    </div>
+    <div id="tip"></div>
+  </div>
+
+  <aside class="right">
+    <div class="sec">
+      <h2>Ветер</h2>
+      <canvas class="spark" id="windspark" height="52"></canvas>
+      <div class="row"><span class="k">Порыв на 10 м (базис лимита)</span><span class="v" id="wref">—</span></div>
+      <div class="row"><span class="k">Порыв на высоте работ</span><span class="v" id="wtop">—</span></div>
+      <div class="row"><span class="k">Средняя на 10 м</span><span class="v" id="wmean">—</span></div>
+      <div class="note" id="wnote" style="margin-top:6px"></div>
+    </div>
+    <div class="sec">
+      <h2>Активный подъём</h2>
+      <div id="liftpanel"><span class="k" style="color:var(--mut)">подъёмов нет</span></div>
+    </div>
+    <div class="sec">
+      <h2>Кран</h2>
+      <div id="cranepanel"></div>
+    </div>
+    <div class="sec">
+      <h2>Бригады</h2>
+      <div id="crewpanel"></div>
+    </div>
+    <div class="sec">
+      <h2>Monte Carlo — подъёмы</h2>
+      <div id="mcpanel"></div>
+    </div>
+    <div class="sec">
+      <h2>Monte Carlo — график</h2>
+      <div id="mcsched"></div>
+    </div>
+  </aside>
+
+  <div id="disc">
+    <b>Оговорка.</b> Результат симуляции — аналитическая поддержка решений, а не расчёт по нормам.
+    Он не заменяет ППР, паспорт крана, схемы строповки и решение ответственного инженера.
+    Все допустимые значения взяты из входных данных, их корректность подтверждает ПТО.
+  </div>
+
+  <footer>
+    <div class="tl">
+      <button id="play">▶ Играть</button>
+      <button id="prev" title="Предыдущее нарушение">⏮</button>
+      <button id="next" title="Следующее нарушение">⏭</button>
+      <input type="range" id="scrub" min="0" max="100" value="0" step="1">
+      <span id="clock">—</span>
+      <select id="speed" style="background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:6px;padding:4px">
+        <option value="1">1 кадр/с</option><option value="4" selected>4 кадра/с</option>
+        <option value="12">12 кадров/с</option><option value="30">30 кадров/с</option>
+      </select>
+      <button id="lz" title="Вид на ярус работ">⌂ Ярус</button>
+      <button id="lzg" title="Вид на площадку">⛁ Площадка</button>
+      <button id="reset">↺ Сброс вида</button>
+    </div>
+    <div class="legend" style="margin-top:7px">
+      <span><i style="background:#4da3ff"></i>работа</span>
+      <span><i style="background:#ff4d4f"></i>край без ограждения</span>
+      <span><i style="background:#ffd166"></i>проход</span>
+      <span><i style="background:#a855f7"></i>склад</span>
+      <span><i style="background:rgba(255,77,79,.35)"></i>коридор груза</span>
+      <span style="margin-left:auto">ЛКМ — вращение · колесо — зум · ПКМ — панорама · <span class="kbd">Space</span> — пуск · <span class="kbd">←→</span> — кадр · бандл <span id="kb">/*__BUNDLE_KB__*/0</span> КБ</span>
+    </div>
+  </footer>
+</div>
+
+<script>
+const DATA = /*__BUNDLE__*/null;
+if(!DATA){document.getElementById('hsub').textContent='данные не встроены — запустите viewer/build_viewer.py';}
+
+/* ================= утилиты ================= */
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const fmtN=(v,d=0)=>v==null||!isFinite(v)?'—':Number(v).toLocaleString('ru-RU',{maximumFractionDigits:d,minimumFractionDigits:d});
+const SEVC={critical:0,high:1,medium:2,low:3};
+const SEVRU={critical:'критическое',high:'высокое',medium:'среднее',low:'низкое'};
+const asList=v=>Array.isArray(v)?v:(v?String(v).split(';').filter(Boolean):[]);
+const ZCOL={work:'#4da3ff',edge:'#ff4d4f',passage:'#ffd166',storage:'#a855f7',crane_hazard:'#ff8c42',node:'#7ee787'};
+
+/* ================= 3D-проекция ================= */
+const cv=$('#view'), ctx=cv.getContext('2d');
+let W=0,H=0,DPR=Math.min(devicePixelRatio||1,2);
+const cam={yaw:-0.72,pitch:0.42,dist:1,tx:30,ty:20,tz:244,scale:5.2};
+function resize(){const r=cv.parentElement.getBoundingClientRect();
+  W=r.width;H=r.height;cv.width=W*DPR;cv.height=H*DPR;cv.style.width=W+'px';cv.style.height=H+'px';
+  ctx.setTransform(DPR,0,0,DPR,0,0);}
+addEventListener('resize',()=>{resize();draw();});
+
+function proj(x,y,z){
+  const dx=x-cam.tx, dy=y-cam.ty, dz=z-cam.tz;
+  const ca=Math.cos(cam.yaw), sa=Math.sin(cam.yaw);
+  const x1=dx*ca-dy*sa, y1=dx*sa+dy*ca;
+  const cp=Math.cos(cam.pitch), sp=Math.sin(cam.pitch);
+  const y2=y1*cp-dz*sp, z2=y1*sp+dz*cp;
+  return {x:W/2+x1*cam.scale, y:H/2-z2*cam.scale, d:y2};
+}
+function poly(pts,fill,stroke,lw=1){
+  ctx.beginPath();ctx.moveTo(pts[0].x,pts[0].y);
+  for(let i=1;i<pts.length;i++)ctx.lineTo(pts[i].x,pts[i].y);
+  ctx.closePath();
+  if(fill){ctx.fillStyle=fill;ctx.fill();}
+  if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=lw;ctx.stroke();}
+}
+function box(x0,y0,z0,x1,y1,z1,fill,stroke,alpha=1){
+  const c=[[x0,y0,z0],[x1,y0,z0],[x1,y1,z0],[x0,y1,z0],[x0,y0,z1],[x1,y0,z1],[x1,y1,z1],[x0,y1,z1]].map(p=>proj(...p));
+  const faces=[[0,1,2,3],[4,5,6,7],[0,1,5,4],[1,2,6,5],[2,3,7,6],[3,0,4,7]];
+  const avg=f=>f.reduce((s,i)=>s+c[i].d,0)/4;
+  faces.sort((a,b)=>avg(b)-avg(a));
+  ctx.globalAlpha=alpha;
+  for(const f of faces){const sh=clamp(0.55+0.45*((avg(f)-avg(faces[0]))/40+0.5),0.35,1);
+    poly(f.map(i=>c[i]),shade(fill,sh),stroke,0.8);}
+  ctx.globalAlpha=1;
+  return avg(faces[0]);
+}
+function shade(hex,k){
+  if(!hex)return null;
+  const n=parseInt(hex.slice(1),16); let r=(n>>16)&255,g=(n>>8)&255,b=n&255;
+  r=clamp(Math.round(r*k),0,255);g=clamp(Math.round(g*k),0,255);b=clamp(Math.round(b*k),0,255);
+  return `rgb(${r},${g},${b})`;
+}
+
+/* ================= состояние ================= */
+let frame=0, playing=false, timer=null, selFinding=null;
+let showZones=true, showCrane=true, showCrews=true, showCorridor=true, showLabels=true;
+const sevFilter=new Set(['critical','high','medium']);
+const ruleFilter=new Set();
+const FR=DATA?DATA.frames:[];
+const ZONES=DATA?DATA.zones:[];
+const CREWT=DATA?DATA.crew_tracks:[];
+const FIND=DATA?DATA.findings:[];
+const LIFTS=DATA?DATA.lifts:[];
+const CR=DATA?DATA.crane:{};
+
+function curTime(){return FR.length?FR[frame].t:'';}
+function parseT(s){return s?new Date(s.replace(' ','T')):null;}
+function activeFindings(t){
+  const T=parseT(t);
+  return FIND.filter(f=>{const a=parseT(f.s),b=parseT(f.e);
+    return a&&b&&T>=a&&T<=b&&sevFilter.has(f.sev)&&(ruleFilter.size===0||ruleFilter.has(f.id));});
+}
+
+/* ================= отрисовка ================= */
+function focusLevel(){
+  const work=ZONES.filter(z=>z.type==='work');
+  if(!work.length)return 244;
+  return Math.max(...work.map(z=>z.z_floor));
+}
+function setView(level){
+  if(level==='work'){const zs=ZONES.filter(z=>z.z_floor>=focusLevel()-1);
+    const xs=zs.length?zs:ZONES;
+    cam.tx=(Math.min(...xs.map(z=>z.x_min))+Math.max(...xs.map(z=>z.x_max)))/2;
+    cam.ty=(Math.min(...xs.map(z=>z.y_min))+Math.max(...xs.map(z=>z.y_max)))/2;
+    cam.tz=focusLevel()+2;cam.scale=6.2;}
+  else if(level==='site'){const xs=ZONES;
+    cam.tx=(Math.min(...xs.map(z=>z.x_min))+Math.max(...xs.map(z=>z.x_max)))/2;
+    cam.ty=(Math.min(...xs.map(z=>z.y_min))+Math.max(...xs.map(z=>z.y_max)))/2;
+    cam.tz=120;cam.scale=1.15;}
+}
+
+function draw(){
+  if(!FR.length)return;
+  ctx.clearRect(0,0,W,H);
+  const f=FR[frame], t=f.t;
+  const zf=focusLevel();
+
+  // плита перекрытия рабочего яруса + нижележащая
+  const slabZones=ZONES.filter(z=>Math.abs(z.z_floor-zf)<0.6||Math.abs(z.z_floor-(zf-4))<0.6);
+  if(slabZones.length){
+    const x0=Math.min(...slabZones.map(z=>z.x_min))-2, x1=Math.max(...slabZones.map(z=>z.x_max))+2;
+    const y0=Math.min(...slabZones.map(z=>z.y_min))-2, y1=Math.max(...slabZones.map(z=>z.y_max))+2;
+    box(x0,y0,zf-0.6,x1,y1,zf,'#2b3444','#3d4a5f',0.95);
+    box(x0,y0,zf-4.6,x1,y1,zf-4,'#222a37','#313c4e',0.9);
+  }
+
+  // сетка
+  ctx.globalAlpha=.25;ctx.strokeStyle='#3a4759';ctx.lineWidth=.6;
+  for(let gx=-20;gx<=100;gx+=10){const a=proj(gx,-20,0),b=proj(gx,80,0);
+    ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();}
+  for(let gy=-20;gy<=80;gy+=10){const a=proj(-20,gy,0),b=proj(100,gy,0);
+    ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();}
+  ctx.globalAlpha=1;
+
+  const items=[];
+  // зоны
+  if(showZones) for(const z of ZONES){
+    const onLevel=Math.abs(z.z_floor-zf)<0.6;
+    if(!onLevel && z.type!=='storage' && z.type!=='crane_hazard')continue;
+    const hot=activeFindings(t).some(fd=>asList(fd.z).includes(z.zone_id));
+    const col=hot?'#ff4d4f':(ZCOL[z.type]||'#888');
+    const a=proj(z.x_min,z.y_min,z.z_floor).d;
+    items.push({d:a,fn:()=>{
+      const h=z.type==='edge'?(z.guardrail_installed?1.1:1.6):Math.min(z.z_top-z.z_floor,3);
+      box(z.x_min,z.y_min,z.z_floor,z.x_max,z.y_max,z.z_floor+h,col,null,hot?0.5:0.26);
+      const c=[[z.x_min,z.y_min],[z.x_max,z.y_min],[z.x_max,z.y_max],[z.x_min,z.y_max]].map(p=>proj(p[0],p[1],z.z_floor+h+0.02));
+      poly(c,null,hot?'#ff8a8c':shade(col,1.1),hot?1.8:1);
+      if(showLabels&&cam.scale>3.2){const m=proj((z.x_min+z.x_max)/2,(z.y_min+z.y_max)/2,z.z_floor+h+0.2);
+        ctx.font='10px -apple-system,sans-serif';ctx.textAlign='center';
+        ctx.fillStyle=hot?'#ffb4b5':'#a9b6c7';ctx.fillText(z.zone_id,m.x,m.y);}
+    }});
+  }
+
+  // коридор траектории груза
+  if(showCorridor) for(const l of (f.l||[])){
+    const lf=LIFTS.find(x=>x.id===l[0]); if(!lf)continue;
+    const w=Math.max(8,2*Math.sqrt(lf.area/Math.PI)+4);
+    const zc=zf+0.05;
+    const seg=[[lf.pick[0],lf.pick[1]],[lf.drop[0],lf.drop[1]]];
+    const dx=seg[1][0]-seg[0][0], dy=seg[1][1]-seg[0][1], L=Math.hypot(dx,dy)||1;
+    const nx=-dy/L*w/2, ny=dx/L*w/2;
+    const q=[[seg[0][0]+nx,seg[0][1]+ny],[seg[1][0]+nx,seg[1][1]+ny],[seg[1][0]-nx,seg[1][1]-ny],[seg[0][0]-nx,seg[0][1]-ny]].map(p=>proj(p[0],p[1],zc));
+    items.push({d:-1e6,fn:()=>{poly(q,'rgba(255,77,79,0.14)','rgba(255,120,120,0.55)',1.2);
+      for(const s of seg){const c=proj(s[0],s[1],zc);ctx.beginPath();ctx.arc(c.x,c.y,w/2*cam.scale*.5,0,7);
+        ctx.strokeStyle='rgba(255,120,120,0.3)';ctx.lineWidth=1;ctx.stroke();}}});
+  }
+
+  // кран
+  if(showCrane&&CR.mast){
+    const mx=CR.mast.x,my=CR.mast.y,hz=(f.c&&f.c[2])?Math.max(CR.jib.head_z_m,f.c[2]+6):CR.jib.head_z_m;
+    const s=CR.mast.section_m/2;
+    items.push({d:proj(mx,my,hz/2).d,fn:()=>{
+      box(mx-s,my-s,CR.mast.base_z,mx+s,my+s,hz,'#f0a500','#7a5600',0.95);
+      const st=f.c?f.c[0]:(CR.jib.length_m?0:0);
+      const rad=st*Math.PI/180;
+      const jx=mx+Math.cos(rad)*CR.jib.length_m, jy=my+Math.sin(rad)*CR.jib.length_m;
+      const cx2=mx-Math.cos(rad)*CR.jib.counter_jib_m, cy2=my-Math.sin(rad)*CR.jib.counter_jib_m;
+      const a=proj(mx,my,hz),b=proj(jx,jy,hz),c2=proj(cx2,cy2,hz);
+      ctx.strokeStyle='#ffc94d';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(c2.x,c2.y);ctx.lineTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();
+      ctx.strokeStyle='rgba(255,201,77,.35)';ctx.lineWidth=1;
+      const top=proj(mx,my,hz+9);
+      ctx.beginPath();ctx.moveTo(top.x,top.y);ctx.lineTo(b.x,b.y);ctx.moveTo(top.x,top.y);ctx.lineTo(c2.x,c2.y);ctx.stroke();
+      box(mx-2.5,my-2.5,hz-1,mx+2.5,my+2.5,hz+9,'#ffc94d',null,0.9);
+      // тележка и крюк
+      const R=f.c?f.c[1]:CR.jib.length_m*0.7, Hz=f.c?f.c[2]:hz-30;
+      const tx=mx+Math.cos(rad)*R, ty=my+Math.sin(rad)*R;
+      const tp=proj(tx,ty,hz), hp=proj(tx,ty,Hz);
+      ctx.strokeStyle='#d7dee8';ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(tp.x,tp.y);ctx.lineTo(hp.x,hp.y);ctx.stroke();
+      box(tx-1,ty-1,hz-1.2,tx+1,ty+1,hz+0.4,'#ff9f1c',null,0.95);
+      // груз
+      for(const l of (f.l||[])){
+        const gp=proj(l[1],l[2],l[3]);
+        const sz=clamp(Math.sqrt((LIFTS.find(x=>x.id===l[0])||{area:4}).area)*0.42,0.8,4);
+        box(l[1]-sz,l[2]-sz*0.35,l[3]-sz*0.7,l[1]+sz,l[2]+sz*0.35,l[3]+sz*0.7,'#e8763a','#7d3d17',0.98);
+        ctx.strokeStyle='rgba(215,222,232,.75)';ctx.lineWidth=1;
+        ctx.beginPath();ctx.moveTo(hp.x,hp.y);ctx.lineTo(gp.x,gp.y);ctx.stroke();
+        if(l[4]>0.05){const off=proj(l[1],l[2],l[3]);
+          ctx.strokeStyle='rgba(255,77,79,.85)';ctx.lineWidth=1.4;ctx.setLineDash([3,3]);
+          const raw=proj(l[1]-Math.cos(rad*0+3.49)*l[4],l[2]-Math.sin(3.49)*l[4],l[3]);
+          ctx.beginPath();ctx.moveTo(raw.x,raw.y);ctx.lineTo(off.x,off.y);ctx.stroke();ctx.setLineDash([]);}
+      }
+      if(showLabels){ctx.font='10px -apple-system,sans-serif';ctx.fillStyle='#ffc94d';ctx.textAlign='center';
+        ctx.fillText(CR.id||'CRANE',a.x,a.y-14);}
+    }});
+  }
+
+  // бригады
+  if(showCrews) for(const c of CREWT){
+    const idx=clamp(frame,0,c.p.length-1);
+    const p=c.p[idx]; if(!p)continue;
+    const d=proj(p[0],p[1],p[2]).d;
+    items.push({d:d,fn:()=>{
+      const base=proj(p[0],p[1],p[2]), top=proj(p[0],p[1],p[2]+1.8);
+      const danger=p[3]===2;
+      ctx.strokeStyle=danger?'#fff':'#00000055';ctx.lineWidth=danger?2.4:1.6;
+      ctx.beginPath();ctx.moveTo(base.x,base.y);ctx.lineTo(top.x,top.y);ctx.stroke();
+      ctx.strokeStyle=c.color;ctx.lineWidth=danger?2:1.4;
+      ctx.beginPath();ctx.moveTo(base.x,base.y);ctx.lineTo(top.x,top.y);ctx.stroke();
+      ctx.beginPath();ctx.arc(top.x,top.y,3.4,0,7);ctx.fillStyle=c.color;ctx.fill();
+      ctx.strokeStyle='#0b0f16';ctx.lineWidth=1;ctx.stroke();
+      if(danger){const r=6+3*Math.sin(Date.now()/220);
+        ctx.beginPath();ctx.arc(top.x,top.y,r,0,7);ctx.strokeStyle='rgba(255,77,79,.85)';ctx.lineWidth=1.6;ctx.stroke();}
+      if(showLabels&&cam.scale>3){ctx.font='10px -apple-system,sans-serif';ctx.textAlign='left';
+        ctx.fillStyle='#dfe7f0';ctx.fillText(`${c.id}·${c.size}`,top.x+7,top.y+3);}
+    }});
+  }
+
+  // маркеры нарушений
+  for(const fd of activeFindings(t)){
+    if(!fd.p)continue;
+    const d=proj(fd.p[0],fd.p[1],fd.p[2]).d;
+    items.push({d:d+1e-4,fn:()=>{
+      const p=proj(fd.p[0],fd.p[1],fd.p[2]);
+      const col=fd.sev==='critical'?'#ff4d4f':fd.sev==='high'?'#ff9f1c':'#ffd166';
+      const r=(selFinding===fd?13:9)+2.5*Math.sin(Date.now()/300);
+      ctx.beginPath();ctx.arc(p.x,p.y,r,0,7);ctx.strokeStyle=col;ctx.lineWidth=2;ctx.globalAlpha=.9;ctx.stroke();
+      ctx.globalAlpha=.18;ctx.fillStyle=col;ctx.fill();ctx.globalAlpha=1;
+      ctx.font='bold 10px -apple-system,sans-serif';ctx.textAlign='center';ctx.fillStyle=col;
+      ctx.fillText('!',p.x,p.y+3.5);
+    }});
+  }
+
+  items.sort((a,b)=>a.d-b.d);
+  for(const it of items)it.fn();
+
+  // HUD
+  $('#hudT').textContent=t;
+  const af=activeFindings(t);
+  const worst=af.length?af.slice().sort((a,b)=>SEVC[a.sev]-SEVC[b.sev])[0]:null;
+  $('#hudS').innerHTML=af.length
+    ? `<span style="color:${worst.sev==='critical'?'#ff4d4f':worst.sev==='high'?'#ff9f1c':'#ffd166'}">● ${af.length} наруш. в кадре</span> · ${(f.a||[]).length} работ · ветер ${(f.w||[])[0]} м/с`
+    : `<span style="color:#3fb950">● нарушений нет</span> · ${(f.a||[]).length} работ · ветер ${(f.w||[])[0]} м/с`;
+  $('#clock').textContent=`${t}  ·  кадр ${frame+1}/${FR.length}`;
+}
+
+/* ================= панели ================= */
+function renderNow(){
+  const t=curTime(), af=activeFindings(t);
+  const el=$('#nowfind');
+  if(!af.length){el.innerHTML='<div class="note" style="border-left-color:var(--ok)">В этот момент нарушений нет.</div>';return;}
+  el.innerHTML=af.slice().sort((a,b)=>SEVC[a.sev]-SEVC[b.sev]).map((f,i)=>card(f,true)).join('');
+  el.querySelectorAll('.finding').forEach(n=>n.onclick=()=>{selFinding=FIND[+n.dataset.i];renderAll();});
+}
+function card(f,now){
+  const i=FIND.indexOf(f);
+  return `<div class="finding ${f.sev} ${selFinding===f?'active':''}" data-i="${i}">
+    <div class="ft"><span class="badge b-${f.sev==='critical'?'crit':f.sev==='high'?'high':'med'}">${SEVRU[f.sev]}</span>
+      <span>${f.s} → ${f.e}</span>${f.n?`<span>· ${f.n} чел.</span>`:''}</div>
+    <div class="fm"><b>${f.id}</b> · ${asList(f.z).join(', ')||'—'}<br>${f.m}</div>
+    <div class="ft" style="margin-top:3px">ППР/норма: ${f.src}</div></div>`;
+}
+function renderAllFind(){
+  const list=FIND.filter(f=>sevFilter.has(f.sev)&&(ruleFilter.size===0||ruleFilter.has(f.id)))
+                 .slice().sort((a,b)=>(SEVC[a.sev]-SEVC[b.sev])||(a.s<b.s?-1:1));
+  $('#allfind').innerHTML=list.length?list.map(f=>card(f)).join(''):'<div class="note">Ничего не выбрано.</div>';
+  $('#allfind').querySelectorAll('.finding').forEach(n=>n.onclick=()=>{
+    selFinding=FIND[+n.dataset.i];jumpTo(selFinding.s);renderAll();});
+}
+function renderChips(){
+  const sev=['critical','high','medium'];
+  $('#sevchips').innerHTML=sev.map(s=>`<span class="chip ${sevFilter.has(s)?'on':''}" data-s="${s}">${SEVRU[s]} (${FIND.filter(f=>f.sev===s).length})</span>`).join('');
+  $('#sevchips').querySelectorAll('.chip').forEach(c=>c.onclick=()=>{
+    const s=c.dataset.s;sevFilter.has(s)?sevFilter.delete(s):sevFilter.add(s);renderChips();renderAll();draw();});
+  const rules=[...new Set(FIND.map(f=>f.id))];
+  $('#rulechips').innerHTML=rules.map(r=>`<span class="chip ${ruleFilter.has(r)?'on':''}" data-r="${r}">${r} (${FIND.filter(f=>f.id===r).length})</span>`).join('');
+  $('#rulechips').querySelectorAll('.chip').forEach(c=>c.onclick=()=>{
+    const r=c.dataset.r;ruleFilter.has(r)?ruleFilter.delete(r):ruleFilter.add(r);renderChips();renderAllFind();draw();});
+}
+function renderAgentEv(){
+  const ev=(DATA.agent_events||[]).slice().sort((a,b)=>b.pm-a.pm).slice(0,40);
+  if(!ev.length){$('#agentev').innerHTML='<div class="note">Агентная симуляция не запускалась.</div>';return;}
+  const s=DATA.agent_summary||{};
+  $('#agentev').innerHTML=`<div class="row"><span class="k">Всего человеко-минут воздействия</span><span class="v">${fmtN(s.total_person_minutes,0)}</span></div>`
+   +ev.map(e=>`<div class="finding ${e.sev}" style="margin-bottom:4px">
+      <div class="ft"><span>${e.crew}</span><span>· ${e.zone}</span><span>· ${fmtN(e.pm,0)} чел·мин</span>${e.lift?`<span>· ${e.lift}</span>`:''}</div>
+      <div class="fm" style="font-size:11px">${e.msg}</div></div>`).join('');
+}
+function renderLift(){
+  const f=FR[frame]; const l=(f.l||[])[0];
+  const el=$('#liftpanel');
+  if(!l){el.innerHTML='<span style="color:var(--mut)">подъёмов в этот момент нет</span>';return;}
+  const lf=LIFTS.find(x=>x.id===l[0]); if(!lf){el.innerHTML='';return;}
+  const u=lf.u_sling, uc=lf.u_crane;
+  const swing=lf.offset||0;
+  el.innerHTML=`
+   <div class="row"><span class="k">Подъём</span><span class="v"><b>${lf.id}</b> · ${lf.name}</span></div>
+   <div class="row"><span class="k">Масса / парусность</span><span class="v">${fmtN(lf.mass,0)} кг · ${fmtN(lf.area,1)} м²</span></div>
+   <div class="row"><span class="k">Фаза</span><span class="v">${l[5]}</span></div>
+   <div class="row"><span class="k">Сила ветра на груз</span><span class="v">${fmtN(lf.f_max,0)} Н</span></div>
+   <div class="row"><span class="k">Оттяжка: нужно / есть</span><span class="v">${fmtN(lf.tag_def+lf.tag_cap,0)} / ${fmtN(lf.tag_cap,0)} Н</span></div>
+   <div class="bar"><i class="${lf.tag_def>0?'bad':'good'}" style="width:${clamp(lf.tag_cap&&lf.tag_def!=null?(lf.tag_def+lf.tag_cap)/Math.max(lf.tag_def+lf.tag_cap,1)*100:0,0,100)}%"></i></div>
+   <div class="row"><span class="k">Использование стропа</span><span class="v">${u!=null?fmtN(u*100,0)+' %':'—'}</span></div>
+   <div class="bar"><i class="${u>0.8?'bad':u>0.6?'warn':'good'}" style="width:${clamp((u||0)*100,0,100)}%"></i></div>
+   <div class="row"><span class="k">Использование крана</span><span class="v">${uc!=null?fmtN(uc*100,0)+' %':'—'}</span></div>
+   <div class="bar"><i class="${uc>0.9?'bad':uc>0.7?'warn':'good'}" style="width:${clamp((uc||0)*100,0,100)}%"></i></div>
+   <div class="row"><span class="k">Раскачка: смещение / угол</span><span class="v">${fmtN(swing,2)} м / ${fmtN(lf.theta,1)}°</span></div>
+   <div class="row"><span class="k">Безопасный ветер (10 м)</span><span class="v">${lf.safe_v_ref!=null?fmtN(lf.safe_v_ref,1)+' м/с':'без ограничений'}</span></div>
+   ${lf.windows&&lf.windows.length?`<div class="row"><span class="k">Окон для подъёма</span><span class="v">${lf.windows.length} (${fmtN(lf.windows.reduce((s,w)=>s+w.hours,0),0)} ч)</span></div>`:''}
+   ${lf.viol.length?`<div class="note" style="margin-top:6px">${lf.viol.map(v=>`<b>${v[0]}</b>: ${v[2]}`).join('<br>')}</div>`:''}`;
+}
+function renderCrane(){
+  const f=FR[frame], c=f.c;
+  $('#cranepanel').innerHTML= c?`
+   <div class="row"><span class="k">Вылет</span><span class="v">${fmtN(c[1],1)} м</span></div>
+   <div class="row"><span class="k">Угол поворота</span><span class="v">${fmtN(c[0],0)}°</span></div>
+   <div class="row"><span class="k">Высота крюка</span><span class="v">${fmtN(c[2],1)} м</span></div>
+   <div class="row"><span class="k">Грузоподъёмность на вылете</span><span class="v">${fmtN(c[3],0)} кг</span></div>
+   <div class="row"><span class="k">Масса груза</span><span class="v">${fmtN((LIFTS.find(x=>x.id===(f.l||[])[0]?.[0])||{}).mass,0)} кг</span></div>`
+   :'<span style="color:var(--mut)">кран не работает</span>';
+}
+function renderCrews(){
+  const f=FR[frame];
+  $('#crewpanel').innerHTML=CREWT.map(c=>{
+    const p=c.p[clamp(frame,0,c.p.length-1)];
+    const st=p?['ожидание/перерыв','переход','работа'][p[3]]:'—';
+    return `<div class="row"><span class="k"><span style="display:inline-block;width:8px;height:8px;border-radius:4px;background:${c.color};margin-right:5px"></span>${c.id} · ${c.name}</span>
+      <span class="v">${st}${p&&p[4]?` · ${p[4]}`:''}</span></div>`;}).join('');
+}
+function renderMC(){
+  const m=DATA.mc_lifts||[];
+  if(!m.length){$('#mcpanel').innerHTML='<span style="color:var(--mut)">нет данных MC</span>';return;}
+  $('#mcpanel').innerHTML=`<div class="row" style="margin-bottom:5px"><span class="k">прогонов: ${m[0].n}, метод: ${m[0].method}</span></div>
+  <table><tr><th>Подъём</th><th>P(оттяжка)</th><th>P(ветер)</th><th>P(крит.)</th></tr>`+
+  m.map(x=>{const p=x.p;const cls=v=>v>0.5?'bad':v>0.15?'warn':'good';
+    return `<tr><td>${x.id}</td>
+     <td><span style="color:var(--${p.P_tagline_force_exceeded>0.5?'crit':p.P_tagline_force_exceeded>0.15?'high':'ok'})">${fmtN(p.P_tagline_force_exceeded*100,0)}%</span></td>
+     <td>${fmtN(p.P_wind_above_ppr_limit*100,0)}%</td>
+     <td><b style="color:var(--${p.P_any_critical>0.5?'crit':p.P_any_critical>0.15?'high':'ok'})">${fmtN(p.P_any_critical*100,0)}%</b></td></tr>`;}).join('')+
+  '</table><canvas class="spark" id="mcspark" height="52" style="margin-top:6px"></canvas>';
+  drawMCSpark();
+}
+function drawMCSpark(){
+  const c=$('#mcspark'); if(!c)return;
+  const m=DATA.mc_lifts||[]; if(!m.length)return;
+  const g=c.getContext('2d'); const w=c.width=c.clientWidth*2, h=c.height=104; g.scale(1,1);
+  g.clearRect(0,0,w,h);
+  const cur=m.find(x=>(FR[frame].l||[])[0]&&x.id===(FR[frame].l||[])[0][0])||m[0];
+  const cv=cur.curve||[]; if(!cv.length)return;
+  const mx=Math.max(...cv.map(p=>p.v_ref_ms)), my=Math.max(0.05,...cv.map(p=>p.P_tagline_exceeded));
+  g.strokeStyle='#2a3140';g.lineWidth=1;g.beginPath();g.moveTo(0,h-1);g.lineTo(w,h-1);g.stroke();
+  g.beginPath();
+  cv.forEach((p,i)=>{const x=i/(cv.length-1)*w, y=h-4-(p.P_tagline_exceeded/my)*(h-12);
+    i?g.lineTo(x,y):g.moveTo(x,y);});
+  g.strokeStyle='#ff9f1c';g.lineWidth=2.4;g.stroke();
+  g.lineTo(w,h);g.lineTo(0,h);g.closePath();g.fillStyle='rgba(255,159,28,.14)';g.fill();
+  g.fillStyle='#8b98a9';g.font='17px -apple-system,sans-serif';
+  g.fillText(`${cur.id}: P(отказ оттяжки) от скорости ветра на 10 м`,8,18);
+  g.fillText(`0 м/с`,6,h-6); g.textAlign='right'; g.fillText(`${fmtN(mx,0)} м/с`,w-6,h-6);
+  g.textAlign='left';
+}
+function renderSched(){
+  const s=DATA.mc_schedule||{}; const p=s.rule_probabilities||{}, e=s.exposure_person_hours||{};
+  const pairs=s.top_pairs||[];
+  $('#mcsched').innerHTML=`
+   <div class="row"><span class="k">Две бригады в одной зоне</span><span class="v">${p.no_two_crews_same_zone!=null?fmtN(p.no_two_crews_same_zone*100,0)+'%':'—'}</span></div>
+   <div class="row"><span class="k">Работы друг над другом</span><span class="v">${p.no_work_below_active_work!=null?fmtN(p.no_work_below_active_work*100,0)+'%':'—'}</span></div>
+   <div class="row"><span class="k">Чел·ч воздействия (p95)</span><span class="v">${fmtN(e.p95,0)}</span></div>
+   ${pairs.length?`<table style="margin-top:6px"><tr><th>Пара работ</th><th>P</th><th>ч</th></tr>`+
+     pairs.slice(0,7).map(x=>`<tr><td>${x.task_a} × ${x.task_b}</td>
+       <td><b style="color:var(--${x.P_any>0.5?'crit':x.P_any>0.15?'high':'ok'})">${fmtN(x.P_any*100,0)}%</b></td>
+       <td>${fmtN(x.mean_overlap_h,1)}</td></tr>`).join('')+'</table>'
+     :'<div class="note" style="margin-top:6px">Парных пересечений не выявлено.</div>'}
+   <div class="note" style="margin-top:6px">P = в какой доле прогонов с опозданиями и разбросом длительностей конфликт возникает. 100 % означает: конфликт заложен в самом графике, а не в случайности.</div>`;
+}
+function drawWind(){
+  const c=$('#windspark'); if(!c)return;
+  const g=c.getContext('2d'); const w=c.width=c.clientWidth*2, h=104;
+  g.clearRect(0,0,w,h);
+  const lim=Math.max(...LIFTS.map(l=>l.viol.length?999:0),0);
+  const v=FR.map(f=>f.w[0]); const mx=Math.max(...v,12);
+  // линия лимита 10 м/с (наиболее частый лимит ППР для крана)
+  const L=10, ly=h-4-(L/mx)*(h-12);
+  g.strokeStyle='rgba(255,77,79,.6)';g.setLineDash([5,4]);g.lineWidth=1.6;
+  g.beginPath();g.moveTo(0,ly);g.lineTo(w,ly);g.stroke();g.setLineDash([]);
+  g.fillStyle='rgba(255,77,79,.75)';g.font='16px -apple-system,sans-serif';g.fillText('лимит 10 м/с',6,ly-4);
+  g.beginPath();v.forEach((y,i)=>{const x=i/(v.length-1)*w, yy=h-4-(y/mx)*(h-12);i?g.lineTo(x,yy):g.moveTo(x,yy);});
+  g.strokeStyle='#4da3ff';g.lineWidth=2;g.stroke();
+  g.lineTo(w,h);g.lineTo(0,h);g.closePath();g.fillStyle='rgba(77,163,255,.13)';g.fill();
+  const cx=frame/(FR.length-1)*w;
+  g.strokeStyle='#fff';g.lineWidth=1.6;g.beginPath();g.moveTo(cx,0);g.lineTo(cx,h);g.stroke();
+  g.beginPath();g.arc(cx,h-4-(v[frame]/mx)*(h-12),4,0,7);g.fillStyle='#fff';g.fill();
+}
+function renderWind(){
+  const w=FR[frame].w||[0,0,0];
+  $('#wref').textContent=fmtN(w[0],1)+' м/с';
+  $('#wtop').textContent=fmtN(w[1],1)+' м/с';
+  $('#wmean').textContent=fmtN(w[2],1)+' м/с';
+  const lim=10;
+  $('#wref').style.color=w[0]>lim?'var(--crit)':'var(--ok)';
+  const basis=(DATA.rules&&DATA.rules.meta&&DATA.rules.meta.wind_limit_basis)||'ref_height';
+  $('#wnote').innerHTML=`Базис сравнения с лимитом ППР: <b>${basis==='ref_height'?'высота 10 м (как в паспорте крана)':'высота работ'}</b>. `+
+    `Скорость на высоте работ получена степенным профилем (α=${(DATA.context.wind||{}).profile_alpha||'—'}), `+
+    `плотность воздуха ${(DATA.context.wind||{}).rho_kg_m3||'—'} кг/м³.`;
+  drawWind();
+}
+function renderAll(){renderNow();renderAllFind();renderLift();renderCrane();renderCrews();renderWind();drawMCSpark();}
+
+/* ================= управление ================= */
+function jumpTo(ts){
+  const T=parseT(ts); let best=0,bd=1e18;
+  FR.forEach((f,i)=>{const d=Math.abs(parseT(f.t)-T);if(d<bd){bd=d;best=i;}});
+  frame=best;$('#scrub').value=frame;draw();renderAll();
+}
+function step(d){frame=clamp(frame+d,0,FR.length-1);$('#scrub').value=frame;draw();renderAll();}
+function togglePlay(){playing=!playing;$('#play').textContent=playing?'⏸ Пауза':'▶ Играть';$('#play').classList.toggle('on',playing);
+  if(timer)clearInterval(timer);
+  if(playing)timer=setInterval(()=>{if(frame>=FR.length-1){frame=0;}else step(1);},1000/ +$('#speed').value);}
+$('#play').onclick=togglePlay;
+$('#scrub').oninput=e=>{frame=+e.target.value;draw();renderAll();};
+$('#speed').onchange=()=>{if(playing)togglePlay(),togglePlay();};
+$('#next').onclick=()=>{const t=parseT(curTime());const nx=FIND.filter(f=>parseT(f.s)>t).sort((a,b)=>parseT(a.s)-parseT(b.s))[0];
+  if(nx){selFinding=nx;jumpTo(nx.s);renderAll();}};
+$('#prev').onclick=()=>{const t=parseT(curTime());const pv=FIND.filter(f=>parseT(f.s)<t).sort((a,b)=>parseT(b.s)-parseT(a.s))[0];
+  if(pv){selFinding=pv;jumpTo(pv.s);renderAll();}};
+$('#lz').onclick=()=>{setView('work');draw();};
+$('#lzg').onclick=()=>{setView('site');draw();};
+$('#reset').onclick=()=>{cam.yaw=-0.72;cam.pitch=0.42;setView('work');draw();};
+addEventListener('keydown',e=>{
+  if(e.code==='Space'){e.preventDefault();togglePlay();}
+  if(e.code==='ArrowRight')step(1); if(e.code==='ArrowLeft')step(-1);
+  if(e.key==='z'){showZones=!showZones;draw();} if(e.key==='c'){showCrane=!showCrane;draw();}
+  if(e.key==='p'){showCrews=!showCrews;draw();} if(e.key==='l'){showLabels=!showLabels;draw();}
+  if(e.key==='k'){showCorridor=!showCorridor;draw();}
+});
+
+/* мышь: вращение / панорама / зум */
+let drag=null;
+cv.addEventListener('mousedown',e=>{drag={x:e.clientX,y:e.clientY,b:e.button};e.preventDefault();});
+addEventListener('mouseup',()=>drag=null);
+addEventListener('mousemove',e=>{
+  if(drag){const dx=e.clientX-drag.x, dy=e.clientY-drag.y; drag={...drag,x:e.clientX,y:e.clientY};
+    if(drag.b===2||e.shiftKey){const s=0.06/cam.scale*10;
+      const ca=Math.cos(-cam.yaw),sa=Math.sin(-cam.yaw);
+      cam.tx+=(dx*ca-dy*sa)*s*0.35; cam.ty+=(dx*sa+dy*ca)*s*0.35;}
+    else{cam.yaw-=dx*0.008;cam.pitch=clamp(cam.pitch+dy*0.006,-0.15,1.35);}
+    draw();return;}
+  // подсказка под курсором
+  const r=cv.getBoundingClientRect(), mx=e.clientX-r.left, my=e.clientY-r.top;
+  const f=FR[frame]; let hit=null;
+  for(const c of CREWT){const p=c.p[clamp(frame,0,c.p.length-1)];if(!p)continue;
+    const q=proj(p[0],p[1],p[2]+1.8); if(Math.hypot(q.x-mx,q.y-my)<9){hit=`<b>${c.id}</b> ${c.name}<br>${c.size} чел. · ${p[4]||'без задачи'}<br>xyz ${p[0]}/${p[1]}/${p[2]} м`;break;}}
+  if(!hit) for(const l of (f.l||[])){const q=proj(l[1],l[2],l[3]);
+    if(Math.hypot(q.x-mx,q.y-my)<14){const lf=LIFTS.find(x=>x.id===l[0]);
+      hit=`<b>${l[0]}</b> ${lf?lf.name:''}<br>${lf?fmtN(lf.mass,0)+' кг · '+fmtN(lf.area,1)+' м²':''}<br>фаза ${l[5]} · смещение ${fmtN(l[4],2)} м`;break;}}
+  if(!hit) for(const z of ZONES){const c=proj((z.x_min+z.x_max)/2,(z.y_min+z.y_max)/2,z.z_floor+1);
+    if(Math.abs(c.x-mx)<22&&Math.abs(c.y-my)<12){hit=`<b>${z.zone_id}</b> · ${z.type}<br>уровень ${z.level}, z ${z.z_floor}–${z.z_top} м<br>ограждение: ${z.guardrail_installed?'да':'нет'}<br>${z.note||''}`;break;}}
+  const tip=$('#tip');
+  if(hit){tip.innerHTML=hit;tip.style.display='block';tip.style.left=Math.min(mx+14,W-290)+'px';tip.style.top=(my+12)+'px';}
+  else tip.style.display='none';
+});
+cv.addEventListener('wheel',e=>{e.preventDefault();
+  cam.scale=clamp(cam.scale*(e.deltaY>0?0.9:1.11),0.35,40);draw();},{passive:false});
+cv.addEventListener('contextmenu',e=>e.preventDefault());
+
+/* ================= старт ================= */
+function boot(){
+  if(!DATA||!FR.length){$('#hsub').textContent='нет данных';return;}
+  const m=DATA.meta||{};
+  $('#hsub').textContent=`${m.project||''} · ${m.t_start} → ${m.t_end} · шаг ${m.dt_min} мин · правила v${(DATA.rules&&DATA.rules.meta&&DATA.rules.meta.version)||'?'}`;
+  const fs=DATA.findings_summary||{};
+  $('#bcrit').textContent=`critical: ${fs.by_severity&&fs.by_severity.critical||0}`;
+  $('#bhigh').textContent=`high: ${fs.by_severity&&fs.by_severity.high||0}`;
+  $('#bmed').textContent=`medium: ${fs.by_severity&&fs.by_severity.medium||0}`;
+  $('#bframes').textContent=`кадров: ${FR.length}`;
+  resize(); setView('work');
+  // стартуем с первого нарушения, если оно есть
+  const first=FIND.slice().sort((a,b)=>SEVC[a.sev]-SEVC[b.sev]||(a.s<b.s?-1:1))[0];
+  if(first){selFinding=first;jumpTo(first.s);}else{frame=Math.floor(FR.length*0.2);draw();}
+  renderChips();renderAgentEv();renderMC();renderSched();renderAll();draw();
+  setInterval(()=>{if(!playing)draw();},120);  // пульсация маркеров
+}
+boot();
+</script>
+</body>
+</html>

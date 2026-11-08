@@ -1,0 +1,29 @@
+# crane.yaml — ГЕОМЕТРИЯ И ХАРАКТЕРИСТИКИ КРАНА
+# Источник цифр: паспорт крана и грузовая характеристика арендодателя.
+# Значения ниже — демонстрационные, ЗАМЕНИТЬ на данные своего крана.
+crane:
+  id: CR-320
+  model: "башенный кран класса 320 т·м (self-erecting/climbing), ДЕМО-ДАННЫЕ"
+  mast:
+    x: 66.0            # ось башни, м (в системе координат модели здания)
+    y: 20.0
+    base_z: 0.0
+    top_z: 292.0       # верх башни после наращивания
+    section_m: 2.4
+  jib:
+    length_m: 60.0     # рабочий вылет max
+    counter_jib_m: 18.0
+    head_z: 288.0      # высота точки крепления оттяжек/блоков стрелы
+  trolley:
+    min_radius_m: 6.0
+    max_radius_m: 60.0
+    speed_ms: 1.6
+  hoist:
+    max_speed_ms: 1.2
+    rope_falls: 4
+  limits:
+    max_load_kg: 32000
+    wind_limit_ops_ms: 12.0     # из паспорта: прекращение работ
+    wind_limit_climbing_ms: 8.0 # наращивание башни
+    slew_speed_dps: 0.8
+  load_chart_csv: crane_load_chart.csv   # грузовая характеристика

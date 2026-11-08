@@ -1,0 +1,27 @@
+{
+  "name": "ДЕМО: упрощённая оболочка 400 м",
+  "height_m": 400.0,
+  "floor_count": 100,
+  "floor_height_m": 4.0,
+  "footprint": {"x_min": 0.0, "y_min": 0.0, "x_max": 44.0, "y_max": 32.0},
+  "active_floor": 62,
+  "active_z_m": 248.0,
+  "core": {"x_min": 5.0, "y_min": 5.0, "x_max": 12.0, "y_max": 12.0},
+  "route_graph": {
+    "nodes": {
+      "hoist": [2.0, 16.0, 248.15],
+      "passage": [12.0, 16.0, 248.15],
+      "work": [26.0, 16.0, 248.15],
+      "edge": [34.0, 16.0, 248.15],
+      "crane": [24.0, 14.0, 248.15],
+      "storage": [10.0, 5.0, 248.15]
+    },
+    "edges": [
+      ["hoist", "passage"],
+      ["passage", "work"],
+      ["passage", "storage"],
+      ["work", "edge"],
+      ["work", "crane"]
+    ]
+  }
+}

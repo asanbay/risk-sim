@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Риски строительных работ — 4D просмотр</title>
+  <link rel="stylesheet" href="./styles.css?v=1">
+  <script type="importmap">{"imports":{"three":"./vendor/three.module.js"}}</script>
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <div class="eyebrow">ЦИФРОВОЙ ДВОЙНИК РАБОТ · ПИЛОТ</div>
+      <h1 id="scenario-name">Загрузка сценария…</h1>
+    </div>
+    <div class="topbar-actions">
+      <span id="source-badge" class="badge">ДАННЫЕ</span>
+      <a id="pdf-link" class="button secondary" href="#" target="_blank" rel="noopener">PDF-отчёт</a>
+      <a id="docx-link" class="button secondary" href="#" target="_blank" rel="noopener">Word</a>
+    </div>
+  </header>
+  <div id="disclaimer" class="disclaimer">Результат симуляции — поддержка решений, а не расчёт по нормам.</div>
+
+  <main class="workspace">
+    <aside class="panel controls-panel">
+      <section>
+        <h2>Воспроизведение</h2>
+        <button id="play" class="button primary wide">Запустить</button>
+        <label for="speed">Скорость времени</label>
+        <select id="speed">
+          <option value="1">1× · реальное время</option>
+          <option value="10">10×</option>
+          <option value="60" selected>60×</option>
+          <option value="240">240×</option>
+        </select>
+        <label for="lift-select">Подъём</label>
+        <select id="lift-select"></select>
+      </section>
+      <section>
+        <h2>Слои сцены</h2>
+        <label class="check"><input id="layer-building" type="checkbox" checked> Оболочка здания</label>
+        <label class="check"><input id="layer-zones" type="checkbox" checked> Рабочие зоны</label>
+        <label class="check"><input id="layer-agents" type="checkbox" checked> Бригады</label>
+        <label class="check"><input id="layer-cranes" type="checkbox" checked> Кран и груз</label>
+      </section>
+      <section>
+        <h2>Камера</h2>
+        <div class="button-row">
+          <button id="camera-reset" class="button secondary">Перспектива</button>
+          <button id="camera-top" class="button secondary">Сверху</button>
+        </div>
+        <p class="hint">Вращение — левая кнопка мыши, сдвиг — правая, масштаб — колесо. Нажмите на объект для информации.</p>
+      </section>
+      <section>
+        <h2>Обозначения</h2>
+        <div class="legend"><span class="swatch hazard"></span>Опасная зона крана</div>
+        <div class="legend"><span class="swatch edge"></span>Край перекрытия</div>
+        <div class="legend"><span class="swatch work"></span>Рабочая зона</div>
+        <div class="legend"><span class="swatch passage"></span>Проход / хранение</div>
+      </section>
+    </aside>
+
+    <section class="center-column">
+      <div id="viewport">
+        <div id="loading" class="loading">Загрузка 3D-сцены и результатов…</div>
+        <div id="active-banner" class="active-banner" hidden></div>
+        <div id="selection" class="selection">Объект не выбран</div>
+      </div>
+      <div class="timeline-panel panel">
+        <div class="time-readout">
+          <div><span class="muted">Модельное время</span><strong id="current-time">—</strong></div>
+          <div class="event-counter"><span id="active-count">0</span> активных событий</div>
+        </div>
+        <div class="range-wrap">
+          <input id="timeline" type="range" min="0" max="100" value="0" step="1" aria-label="Модельное время">
+          <div id="event-markers" class="event-markers"></div>
+        </div>
+        <div class="timeline-labels"><span id="timeline-start">—</span><span id="timeline-end">—</span></div>
+      </div>
+    </section>
+
+    <aside class="panel inspector-panel">
+      <div class="summary-grid">
+        <div class="metric"><span>События</span><strong id="event-count">—</strong></div>
+        <div class="metric danger"><span>Критические</span><strong id="critical-count">—</strong></div>
+      </div>
+      <nav class="tabs" aria-label="Разделы инспектора">
+        <button class="tab active" data-tab="events">События</button>
+        <button class="tab" data-tab="lift">Подъём</button>
+        <button class="tab" data-tab="assumptions">Допущения</button>
+      </nav>
+      <section id="tab-events" class="tab-content">
+        <div id="events-list" class="events-list"></div>
+      </section>
+      <section id="tab-lift" class="tab-content" hidden>
+        <h2>Показатели подъёма</h2>
+        <dl id="lift-metrics" class="metrics-list"></dl>
+        <h2>Ветер</h2>
+        <svg id="wind-chart" viewBox="0 0 340 145" role="img" aria-label="График среднего ветра и порывов"></svg>
+        <div class="chart-legend"><span class="gust-line"></span>Порывы <span class="mean-line"></span>Средний <span class="limit-line"></span>Лимит</div>
+        <div id="mc-summary" class="callout"></div>
+      </section>
+      <section id="tab-assumptions" class="tab-content" hidden>
+        <h2>Допущения</h2>
+        <ul id="assumptions-list" class="assumptions"></ul>
+        <h2>Проверки</h2>
+        <div id="validation-list"></div>
+        <h2>Версии входных файлов</h2>
+        <div id="source-hashes" class="hashes"></div>
+      </section>
+    </aside>
+  </main>
+  <footer>Положения людей и физика упрощены. Все пороги должны быть подтверждены ответственным инженером до использования на объекте.</footer>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

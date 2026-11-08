@@ -1,0 +1,29 @@
+{
+  "name": "ДЕМО: 3-этажное здание, активные работы",
+  "height_m": 12.0,
+  "floor_count": 3,
+  "floor_height_m": 4.0,
+  "footprint": {"x_min": 0.0, "y_min": 0.0, "x_max": 36.0, "y_max": 24.0},
+  "active_floor": 3,
+  "active_z_m": 12.0,
+  "core": {"x_min": 3.0, "y_min": 3.0, "x_max": 7.0, "y_max": 7.0},
+  "route_graph": {
+    "nodes": {
+      "hoist": [2.0, 18.0, 12.15],
+      "passage": [12.0, 18.0, 12.15],
+      "form": [15.0, 10.0, 12.15],
+      "concrete": [27.0, 10.0, 12.15],
+      "crane": [23.0, 8.0, 12.15],
+      "edge": [34.0, 12.0, 12.15],
+      "storage": [5.0, 5.0, 12.15]
+    },
+    "edges": [
+      ["hoist", "passage"],
+      ["passage", "form"],
+      ["passage", "concrete"],
+      ["passage", "storage"],
+      ["form", "crane"],
+      ["concrete", "edge"]
+    ]
+  }
+}

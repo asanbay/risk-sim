@@ -1,0 +1,6 @@
+zone_id,level,x_min,y_min,x_max,y_max,z_floor,z_top,type,guardrail,route_node
+L62-B,L62,20,10,32,22,248,252,work,,work
+L62-CRANE,L62,18,8,34,24,248,258,crane_hazard,,crane
+L62-EDGE,L62,32,10,36,22,248,252,edge,false,edge
+L62-PASS,L62,0,14,20,18,248,250,passage,,passage
+L62-STORAGE,L62,5,2,15,8,248,251,storage,,storage

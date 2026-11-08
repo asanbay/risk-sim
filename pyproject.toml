@@ -1,0 +1,35 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "construction-risk-sim"
+version = "0.7.0"
+description = "Decision-support simulation for construction work scenarios"
+requires-python = ">=3.12"
+dependencies = [
+  "numpy>=2.0,<3",
+  "pandas>=2.2,<4",
+  "scipy>=1.11,<2",
+  "shapely>=2.0,<3",
+  "networkx>=3.3,<4",
+  "openpyxl>=3.1,<4",
+  "PyYAML>=6,<7",
+  "python-docx>=1.1,<2",
+  "matplotlib>=3.8,<4",
+  "reportlab>=4,<6",
+  "Pillow>=10,<13",
+  "plotly>=5.22,<7",
+  "streamlit>=1.36,<2",
+]
+
+[project.optional-dependencies]
+bim = ["ifcopenshell>=0.8", "trimesh>=4,<5"]
+physics = ["mujoco>=3.2,<4"]
+test = ["pytest>=8,<10"]
+
+[project.scripts]
+risk-sim = "risk_sim.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["risk_sim", "core", "report", "tools", "viewer", "blender"]

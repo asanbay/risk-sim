@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>3D-сцена стройки — Three.js (glTF)</title>
+<style>
+  :root { color-scheme: dark; }
+  html,body { margin:0; height:100%; background:#0d1117; color:#e6edf3;
+    font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+  #app { position:fixed; inset:0; }
+  #hud { position:fixed; top:0; left:0; right:0; padding:10px 14px;
+    background:linear-gradient(#0d1117ee,#0d111700); pointer-events:none; }
+  #hud b { font-size:16px; }
+  #hud .muted { color:#8b949e; font-size:12px; }
+  #bar { position:fixed; left:0; right:0; bottom:0; padding:10px 14px 14px;
+    background:linear-gradient(#0d111700,#0d1117ee 40%); display:flex; gap:12px; align-items:center; }
+  #bar input[type=range] { flex:1; }
+  #bar .pill { background:#161b22; border:1px solid #30363d; border-radius:999px;
+    padding:4px 10px; font-size:12px; color:#8b949e; white-space:nowrap; }
+  #err { position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
+    text-align:center; padding:30px; }
+  #err[hidden] { display:none; }
+  #err code { display:block; background:#161b22; border:1px solid #30363d; border-radius:8px;
+    padding:10px 14px; margin:10px auto; max-width:720px; white-space:pre-wrap; color:#7ee787; }
+  .warn { color:#ffd166; }
+  button { background:#238636; border:0; color:#fff; border-radius:6px; padding:6px 12px; cursor:pointer; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="hud">
+  <b id="t">3D-сцена стройки</b>
+  <div class="muted" id="sub">загрузка…</div>
+  <div class="muted warn">Результат симуляции — поддержка решений, а не расчёт по нормам.
+    Допустимые значения — из ППР и паспортов оборудования.</div>
+</div>
+<div id="bar">
+  <span class="pill" id="now">—</span>
+  <input id="scrub" type="range" min="0" max="100" value="0" step="1"/>
+  <button id="play">▶</button>
+  <span class="pill" id="wind">ветер: —</span>
+  <span class="pill" id="viol">нарушений: —</span>
+</div>
+<div id="err" hidden>
+  <div>
+    <h2>Не удалось открыть 3D-сцену</h2>
+    <p>Эта страница показывает <span class="warn">results/pilot/building.glb</span>
+       и читает <span class="warn">results/pilot/scene_bundle.json</span>.
+       Three.js и зависимости хранятся локально, интернет не нужен.</p>
+    <code># 1. собрать сцену и короткую анимацию:
+FRAMES=24 EVERY=40 FPS=12 ./blender/render.sh
+
+# 2. экспортировать GLB из анимированной сцены:
+blender -b results/pilot/building.blend -P blender/export_gltf.py -- --out results/pilot/building.glb
+
+# 3. открыть страницу через локальный сервер (не file://!):
+python -m http.server 8766
+# затем: http://localhost:8766/viewer/pilot_three.html</code>
+    <p class="muted">Без Blender остаётся автономный вьюер:
+       <a href="../results/pilot/viewer.html">results/pilot/viewer.html</a> — он работает офлайн и без единой зависимости.</p>
+  </div>
+</div>
+
+<script type="importmap">
+{ "imports": { "three": "./vendor/three.module.js" } }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from './vendor/OrbitControls.js';
+import { GLTFLoader } from './vendor/GLTFLoader.js';
+
+const $ = (id) => document.getElementById(id);
+const errBox = $('err');
+const fail = (msg) => { console.error(msg); $('sub').textContent = msg; errBox.hidden = false; };
+
+let bundle = null;
+try {
+  bundle = await (await fetch('../results/pilot/scene_bundle.json')).json();
+} catch (e) { fail('не удалось прочитать results/pilot/scene_bundle.json: ' + e); }
+
+const frames = bundle?.timeline?.frames || [];
+const crane  = bundle?.timeline?.crane || {};
+const windLim = crane?.limits?.wind_limit_ops_ms ?? null;
+const findings = bundle?.findings || [];
+const parseT = (s) => new Date(s.replace(' ', 'T'));
+
+// ---------- сцена ----------
+const app = $('app');
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+app.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0d1117);
+scene.fog = new THREE.Fog(0x0d1117, 600, 1600);
+
+const zoneDefs = bundle?.timeline?.zones || [];
+const activeLevel = zoneDefs.length ? Math.max(...zoneDefs.map((z) => z.z_floor)) : 244;
+const activeForCamera = zoneDefs.filter((z) => z.z_floor >= activeLevel - 1 && z.type !== 'crane_hazard');
+const focusZones = activeForCamera.length ? activeForCamera : zoneDefs;
+const focusX = focusZones.length ? (Math.min(...focusZones.map((z) => z.x_min)) + Math.max(...focusZones.map((z) => z.x_max))) / 2 : 30;
+const focusY = focusZones.length ? (Math.min(...focusZones.map((z) => z.y_min)) + Math.max(...focusZones.map((z) => z.y_max))) / 2 : 20;
+const focusSpan = focusZones.length ? Math.max(...focusZones.map((z) => Math.max(z.x_max - z.x_min, z.y_max - z.y_min))) : 60;
+const cameraDistance = Math.max(70, focusSpan * 1.4);
+const camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.5, 5000);
+camera.position.set(focusX + cameraDistance, activeLevel + 50, -focusY - cameraDistance);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.set(focusX, activeLevel + 2, -focusY);
+controls.maxDistance = 1500;
+
+scene.add(new THREE.HemisphereLight(0xbfd8ff, 0x0d1117, 0.9));
+const sun = new THREE.DirectionalLight(0xfff2df, 2.2);
+sun.position.set(300, 500, 200);
+scene.add(sun);
+
+// ---------- glTF ----------
+let mixer = null, actions = [], duration = 0;
+const zoneNodes = [];   // { node, baseColor }
+try {
+  const gltf = await new GLTFLoader().loadAsync('../results/pilot/building.glb');
+  scene.add(gltf.scene);
+  gltf.scene.traverse((o) => {
+    if (o.name && o.name.startsWith('Zone_') && o.material) {
+      const ex = o.userData || {};
+      zoneNodes.push({ node: o, base: new THREE.Color(...(ex.base_color || [0.3, 0.64, 1.0])) });
+      o.material.transparent = true;
+      o.material.opacity = 0.35;
+    }
+  });
+  if (gltf.animations && gltf.animations.length) {
+    mixer = new THREE.AnimationMixer(gltf.scene);
+    actions = gltf.animations.map((c) => mixer.clipAction(c));
+    actions.forEach((a) => a.play());
+    duration = Math.max(...gltf.animations.map((c) => c.duration));
+  }
+} catch (e) {
+  fail('не удалось загрузить results/pilot/building.glb: ' + e);
+  throw e;
+}
+
+// ---------- таймлайн ----------
+const scrub = $('scrub');
+scrub.max = String(Math.max(1, frames.length - 1));
+let cur = 0, playing = false, last = performance.now();
+const FPS_MAP = 8;   // кадров симуляции в секунду при воспроизведении
+
+$('play').onclick = () => { playing = !playing; $('play').textContent = playing ? '❚❚' : '▶'; };
+scrub.oninput = () => { cur = +scrub.value; apply(cur); };
+
+function activeZones(t) {
+  const s = new Set();
+  for (const f of findings) {
+    const a = parseT(f.start), b = parseT(f.end);
+    if (a <= t && t <= b) for (const z of String(f.zone_ids || '').split(';')) if (z) s.add(z);
+  }
+  return s;
+}
+
+function apply(i) {
+  const f = frames[i]; if (!f) return;
+  const t = parseT(f.t);
+  if (mixer && duration > 0) mixer.setTime((i / Math.max(1, frames.length - 1)) * duration);
+  $('now').textContent = f.t;
+  const w = f.wind || {};
+  $('wind').textContent = `ветер: ${w.gust_at_ref_ms ?? '—'} м/с @10 м · ${w.gust_at_top_ms ?? '—'} на верху` +
+    (windLim ? ` (лимит ${windLim})` : '');
+  const act = activeZones(t);
+  $('viol').textContent = 'зон в нарушении: ' + act.size;
+  const RED = new THREE.Color(0xff2d2d);
+  for (const z of zoneNodes) {
+    const id = z.node.name.slice(5);
+    z.node.material.color.copy(act.has(id) ? RED : z.base);
+    z.node.material.opacity = act.has(id) ? 0.75 : 0.30;
+    z.node.material.emissive = act.has(id) ? RED : new THREE.Color(0x000000);
+    z.node.material.emissiveIntensity = act.has(id) ? 0.35 : 0;
+  }
+  const l = (f.loads || [])[0];
+  $('sub').textContent = l
+    ? `${l.lift_id} ${l.load_name} · ${l.mass_kg} кг · фаза ${l.phase} · раскачка ${l.swing_offset_m} м`
+    : 'кран без груза';
+}
+
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+apply(0);
+function loop(now) {
+  requestAnimationFrame(loop);
+  const dt = (now - last) / 1000; last = now;
+  if (playing) {
+    cur = (cur + dt * FPS_MAP) % frames.length;
+    scrub.value = String(Math.floor(cur));
+    apply(Math.floor(cur));
+  }
+  controls.update();
+  renderer.render(scene, camera);
+}
+requestAnimationFrame(loop);
+$('sub').textContent = 'готово: ' + frames.length + ' кадров';
+</script>
+</body>
+</html>

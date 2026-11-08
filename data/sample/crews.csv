@@ -1,0 +1,7 @@
+crew_id,name,size,color,home_zone,role
+C1,Бригада опалубщиков,6,#3b82f6,STAIR-L62,formwork
+C2,Арматурщики,8,#22c55e,STAIR-L62,rebar
+C3,Бетонщики,10,#f97316,STAIR-L62,concrete
+C4,Такелажники/склад,4,#a855f7,STAIR-L62,logistics
+C5,Крановая бригада (стропальщики),5,#ef4444,STORE-GROUND-N,crane
+C6,ИТР/ПТО (обходы),2,#eab308,STAIR-L62,supervision

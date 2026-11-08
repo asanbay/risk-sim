@@ -1,0 +1,7 @@
+lift_id,task_id,load_name,mass_kg,area_m2,cd_min,cd_max,sling_legs,sling_angle_deg,carrying_legs,sling_wll_kg,hook_height_m,radius_m,pickup_x,pickup_y,pickup_z,dropoff_x,dropoff_y,dropoff_z,tagline_people,wind_limit_ms,daf_mode
+L-01,T-012-LIFT-PANEL-1,Щит опалубки стальной 2.5x1.2 м,450,3.0,1.1,1.6,4,60,2,2000,262,44,14,50,1.5,14,12,246.0,2,10,normal
+L-02,T-016-LIFT-PANEL-2,Крупнощитовая опалубка 6.0x2.0 м,1800,12.0,1.1,1.6,4,55,2,5000,268,46,20,50,1.5,46,12,246.0,3,10,normal
+L-03,T-017-LIFT-REBAR,Пучок арматуры A500 d=20,2400,1.2,0.9,1.3,4,60,3,3150,272,38,68,10,1.5,20,28,246.0,2,10,abrupt
+L-04,T-020-LIFT-BUCKET,Бадья поворотная 1.5 м3 с бетоном,2200,2.4,0.8,1.1,4,60,4,2000,270,30,68,14,1.5,30,14,246.0,1,10,smooth
+L-05,T-023-LIFT-PANEL-3,Панель опалубки L61 3.0x1.5 м,800,4.5,1.1,1.6,4,60,2,3150,258,42,14,50,1.5,14,12,242.0,2,10,normal
+L-06,T-024-CRANE-CLIMB,Секция башни крана 3.0 м,4200,6.0,1.2,1.7,4,70,4,5000,290,12,72,20,1.5,72,20,280.0,0,8,abrupt

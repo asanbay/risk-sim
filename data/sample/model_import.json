@@ -1,0 +1,20 @@
+{
+  "schema_version": "1.0",
+  "source_file": "SYNTHETIC make_sample_glb.py",
+  "source_sha256": "25e6c03966a221210342294c1b1fdcedf7d948b36c902eb790614b87951794ea",
+  "ifc_schema": "synthetic",
+  "generated_at": "2026-11-07T17:57:43.210881+00:00",
+  "glb_file": "model.glb",
+  "glb_sha256": "3718e84ab25f77d0cf50b5f64f4e0800c2351a4dd8054de1fe8db809f48737e9",
+  "coordinate_system": "right_handed_z_up_m",
+  "glb_coordinates": "site_coordinates",
+  "unit_scale_to_m": 1.0,
+  "include_types": [
+    "synthetic"
+  ],
+  "element_count": 123,
+  "triangle_count": 1476,
+  "failed_element_count": 0,
+  "failed_elements": [],
+  "synthetic": true
+}

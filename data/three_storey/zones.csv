@@ -1,0 +1,7 @@
+zone_id,level,x_min,y_min,x_max,y_max,z_floor,z_top,type,guardrail,route_node
+L3-FORM,L3,8,4,20,16,12,15,work,true,form
+L3-CONC,L3,20,4,32,16,12,15,work,true,concrete
+L3-CRANE,L3,16,2,32,18,12,16,crane_hazard,true,crane
+L3-EDGE,L3,32,2,36,22,12,15,edge,false,edge
+L3-PASSAGE,L3,0,16,36,20,12,15,passage,true,passage
+L3-STORAGE,L3,2,2,8,8,12,15,storage,true,storage

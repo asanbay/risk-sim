@@ -1,0 +1,72 @@
+scenario:
+  id: demo_L62
+  name: "ДЕМО: монтаж, подъём и бетонирование на отметке 248 м"
+  version: 0.1.0
+  source_type: synthetic_demo
+  timeline_step_s: 60
+  coordinate_system: right_handed_z_up_m
+
+rules:
+  no_two_crews_same_zone:
+    enabled: true
+    severity: high
+    reference: "ДЕМО-ППР: заменить на утверждённый пункт перед реальным прогоном"
+  no_work_under_crane_hazard:
+    enabled: true
+    severity: critical
+    reference: "ДЕМО-ППР: заменить на утверждённый пункт перед реальным прогоном"
+  edge_work_requires_guardrail:
+    enabled: true
+    severity: high
+    reference: "ДЕМО-ППР: заменить на утверждённый пункт и норму перед реальным прогоном"
+  stop_crane_ops_above_wind_limit:
+    enabled: true
+    severity: critical
+    reference: "ДЕМО-ППР: заменить на паспорт крана и пункт ППР перед реальным прогоном"
+    wind_metric: gust_ms
+
+physics:
+  engine: mujoco_hinge
+  air_density_kg_m3: 1.225
+  gravity_m_s2: 9.80665
+  timestep_s: 0.02
+  output_step_s: 0.1
+  duration_s: 300.0
+  damping_per_s: 0.08
+  wind_metric: gust_ms
+  wind_direction_deg: 0.0
+  tagline_model: horizontal_linear_spring_capped_at_capacity
+
+agents:
+  walking_speed_m_s: 1.2
+  origin_node: hoist
+  travel_buffer_min: 10.0
+  worker_spacing_m: 0.8
+
+monte_carlo:
+  seed: 42
+  wind_samples: 5000
+  schedule_samples: 1000
+  gust_distribution: normal_from_lift_window_clipped_at_zero
+  mass_relative_uniform_uncertainty: 0.05
+  start_delay_std_min: 5.0
+  start_delay_clip_min: [-15.0, 20.0]
+  duration_multiplier_std: 0.08
+  duration_multiplier_clip: [0.75, 1.3]
+
+report:
+  object_name: "ДЕМО-ОБЪЕКТ: здание 400 м"
+  author: "Автоматический демонстрационный прогон"
+  language: ru
+
+assumptions:
+  - "Все входные значения демонстрационные и не относятся к реальному объекту."
+  - "Груз представлен точечной массой на нерастяжимом подвесе; гибкость стрелы и тросов не моделируется."
+  - "Порыв из CSV используется как эквивалентная постоянная скорость для квазистатической ветровой силы."
+  - "Оттяжка представлена горизонтальной пружиной с ограничением силы; возможности людей этой моделью не подтверждаются."
+  - "Усилие в стропах рассчитано только для статического вертикального веса без динамического коэффициента и ветрового добавления."
+  - "WLL задан на одну несущую ветвь; схему строповки должен подтвердить ответственный инженер."
+  - "Маршруты и положения людей упрощены; это не модель эвакуации и не биомеханика."
+  - "Высотная привязка ветра в демо не подтверждена измерениями."
+  - "Monte Carlo использует условные распределения, а не обученную модель реальных порывов и задержек."
+  - "Анализ чувствительности ±10% и ±30% квазистатический; период маятника дан для малых колебаний, динамика повторно не интегрируется."

@@ -1,0 +1,2 @@
+lift_id,task_id,load_name,mass_kg,area_m2,cd,cd_min,cd_max,sling_legs,sling_angle_deg,carrying_legs,sling_wll_kg,hook_height_m,radius_m,tagline_people,wind_limit_ms,rope_length_m,tagline_capacity_n,tagline_stiffness_n_per_m,crane_x_m,crane_y_m,slew_angle_deg,load_length_m,load_width_m,load_height_m
+LIFT-062-01,T-062-LIFT,ДЕМО: плоская панель,4000,18,1.35,1.1,1.6,4,45,2,5000,258,28,2,10,12,1500,120,0,0,25,6,0.2,3
